@@ -1,0 +1,90 @@
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local localPlayer = Players.LocalPlayer
+local camera = workspace.CurrentCamera
+local aiming = false
+local currentTarget = nil
+
+local ScreenGui = Instance.new("ScreenGui")
+local StartButton = Instance.new("TextButton")
+local StopButton = Instance.new("TextButton")
+
+ScreenGui.Parent = localPlayer:WaitForChild("PlayerGui")
+
+StartButton.Size = UDim2.new(0, 100, 0, 50)
+StartButton.Position = UDim2.new(0, 10, 0, 10)
+StartButton.BackgroundColor3 = Color3.new(0, 1, 0)
+StartButton.Text = "Start Aim"
+StartButton.BorderSizePixel = 0
+StartButton.TextColor3 = Color3.new(1, 1, 1)
+StartButton.Parent = ScreenGui
+
+StopButton.Size = UDim2.new(0, 100, 0, 50)
+StopButton.Position = UDim2.new(0, 120, 0, 10)
+StopButton.BackgroundColor3 = Color3.new(1, 0, 0)
+StopButton.Text = "Stop Aim"
+StopButton.BorderSizePixel = 0
+StopButton.TextColor3 = Color3.new(1, 1, 1)
+StopButton.Parent = ScreenGui
+
+local function createRoundedCorners(button)
+    local corner = Instance.new("UICorner")
+    corner.CornerRadius = UDim.new(0.2, 0)
+    corner.Parent = button
+end
+
+createRoundedCorners(StartButton)
+createRoundedCorners(StopButton)
+
+local function getClosestEnemy()
+    local closestPlayer = nil
+    local shortestDistance = math.huge
+    
+    for _, player in pairs(Players:GetPlayers()) do
+        if player ~= localPlayer and player.Character and player.Character:FindFirstChild("Head") then
+            if not localPlayer.Team or not player.Team or localPlayer.Team ~= player.Team then
+                local playerHead = player.Character.Head.Position
+                local distance = (playerHead - localPlayer.Character.Head.Position).Magnitude
+                
+                if distance < shortestDistance then
+                    shortestDistance = distance
+                    closestPlayer = player
+                end
+            end
+        end
+    end
+    
+    return closestPlayer
+end
+
+local function aimAt(player)
+    if player and player.Character and player.Character:FindFirstChild("Head") then
+        local playerHead = player.Character.Head.Position
+        local aimCFrame = CFrame.new(camera.CFrame.Position, playerHead)
+        camera.CFrame = aimCFrame
+    end
+end
+
+RunService.RenderStepped:Connect(function()
+    if aiming then
+        currentTarget = getClosestEnemy()  -- Continuously update the nearest enemy
+        
+        if currentTarget then
+            aimAt(currentTarget)
+        end
+    end
+end)
+
+StartButton.MouseButton1Click:Connect(function()
+    aiming = true
+end)
+
+StopButton.MouseButton1Click:Connect(function()
+    aiming = false
+    currentTarget = nil  -- Clear current target when stopped
+end)
+
+Players.LocalPlayer.CharacterAdded:Connect(function()
+    aiming = false  -- Stop aiming when the player respawns
+    currentTarget = nil  -- Reset the current target
+end)
